@@ -15,6 +15,7 @@ const userColName = "users"
 
 type UserStore interface {
 	GetUserById(ctx context.Context, id string) (*types.User, error)
+	GetUsers(ctx context.Context) ([]*types.User, error)
 }
 
 type MongoUserStore struct {
@@ -44,4 +45,28 @@ func (s *MongoUserStore) GetUserById(ctx context.Context, id string) (*types.Use
 	}
 
 	return &user, nil
+}
+
+func (s *MongoUserStore) GetUsers(ctx context.Context) ([]*types.User, error) {
+	users := []*types.User{}
+
+	cur, err := s.coll.Find(ctx, bson.M{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	for cur.Next(ctx) {
+		var user *types.User
+
+		err = cur.Decode(&user)
+
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
 }
