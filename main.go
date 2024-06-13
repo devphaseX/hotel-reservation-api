@@ -17,7 +17,6 @@ func main() {
 
 	app.Get("/foo", handleFoo)
 	apiv1.Get("/user", handleUser)
-
 	app.Listen(*listenAddress)
 }
 
