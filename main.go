@@ -70,6 +70,7 @@ func main() {
 
 	app.Get("/foo", handleFoo)
 	apiv1.Get("/users", userHandler.HandlerGetUsers)
+	apiv1.Post("/users", userHandler.HandleCreateUser)
 	apiv1.Get("/users/:id", userHandler.HandleGetUser)
 	app.Listen(*listenAddress)
 }
