@@ -18,7 +18,7 @@ type UserStore interface {
 	GetUsers(ctx context.Context) ([]*types.User, error)
 	CreateUser(ctx context.Context, user *types.User) (*types.User, error)
 	RemoveUser(ctx context.Context, id string) error
-	PutUser(ctx context.Context, filter, update bson.D) error
+	PutUser(ctx context.Context, filter bson.D, update bson.M) error
 }
 
 type MongoUserStore struct {
@@ -107,13 +107,22 @@ func (s *MongoUserStore) RemoveUser(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *MongoUserStore) PutUser(ctx context.Context, filter, values bson.D) error {
-	update := bson.D{{Key: "$set", Value: values}}
-	_, err := s.coll.UpdateOne(ctx, filter, update)
+func (s *MongoUserStore) PutUser(ctx context.Context, filter bson.D, values bson.M) error {
+	formattedValues := bson.M{}
+	for key, value := range values {
+		newKey := toSnakeCase(key)
+		formattedValues[newKey] = value
+	}
+
+	update := bson.D{{Key: "$set", Value: formattedValues}}
+
+	res, err := s.coll.UpdateMany(ctx, filter, update)
 
 	if err != nil {
 		return err
 	}
+
+	fmt.Println(res.ModifiedCount)
 
 	return nil
 }
