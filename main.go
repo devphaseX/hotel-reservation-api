@@ -40,7 +40,7 @@ func main() {
 	apiv1 := app.Group("/api/v1")
 
 	//handler initialization
-	userHandler := api.NewUserHandler(db.NewMongoUserStore(client))
+	userHandler := api.NewUserHandler(db.NewMongoUserStore(client, dbName))
 
 	app.Get("/foo", handleFoo)
 	apiv1.Get("/users", userHandler.HandlerGetUsers)

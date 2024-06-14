@@ -10,15 +10,19 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-const DBNAME = "hotel-reservation"
 const userColName = "users"
 
+type Dropper interface {
+	Drop(ctx context.Context) error
+}
+
 type UserStore interface {
+	Dropper
 	GetUserById(ctx context.Context, id string) (*types.User, error)
 	GetUsers(ctx context.Context) ([]*types.User, error)
 	CreateUser(ctx context.Context, user *types.User) (*types.User, error)
 	RemoveUser(ctx context.Context, id string) error
-	PutUser(ctx context.Context, filter bson.D, update bson.M) error
+	PutUser(ctx context.Context, filter bson.D, update types.UpdateUserParams) error
 }
 
 type MongoUserStore struct {
@@ -26,11 +30,16 @@ type MongoUserStore struct {
 	coll   *mongo.Collection
 }
 
-func NewMongoUserStore(client *mongo.Client) *MongoUserStore {
+func NewMongoUserStore(client *mongo.Client, dbName string) *MongoUserStore {
 	return &MongoUserStore{
 		client: client,
-		coll:   client.Database(DBNAME).Collection(userColName),
+		coll:   client.Database(dbName).Collection(userColName),
 	}
+}
+
+func (s *MongoUserStore) Drop(ctx context.Context) error {
+	fmt.Println("----dropping user collection")
+	return s.coll.Drop(ctx)
 }
 
 func (s *MongoUserStore) GetUserById(ctx context.Context, id string) (*types.User, error) {
@@ -62,18 +71,6 @@ func (s *MongoUserStore) GetUsers(ctx context.Context) ([]*types.User, error) {
 	if err = cur.All(ctx, &users); err != nil {
 		return nil, err
 	}
-
-	// for cur.Next(ctx) {
-	// 	var user *types.User
-
-	// 	err = cur.Decode(&user)
-
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-
-	// 	users = append(users, user)
-	// }
 
 	return users, nil
 }
@@ -107,14 +104,9 @@ func (s *MongoUserStore) RemoveUser(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *MongoUserStore) PutUser(ctx context.Context, filter bson.D, values bson.M) error {
-	formattedValues := bson.M{}
-	for key, value := range values {
-		newKey := toSnakeCase(key)
-		formattedValues[newKey] = value
-	}
+func (s *MongoUserStore) PutUser(ctx context.Context, filter bson.D, values types.UpdateUserParams) error {
 
-	update := bson.D{{Key: "$set", Value: formattedValues}}
+	update := bson.D{{Key: "$set", Value: values.ToBSON()}}
 
 	res, err := s.coll.UpdateMany(ctx, filter, update)
 

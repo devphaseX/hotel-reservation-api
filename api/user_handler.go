@@ -74,7 +74,7 @@ func (h *UserHandler) HandleCreateUser(c *fiber.Ctx) error {
 func (h *UserHandler) HandleUpdateUser(c *fiber.Ctx) error {
 	var (
 		userId = c.Params("id")
-		values = bson.M{}
+		values types.UpdateUserParams
 	)
 
 	oid, err := primitive.ObjectIDFromHex(userId)
