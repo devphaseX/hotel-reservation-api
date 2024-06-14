@@ -1,9 +1,14 @@
 package api
 
 import (
+	"errors"
+
 	"github.com/devphaseX/hotel-reservation-api/db"
 	"github.com/devphaseX/hotel-reservation-api/types"
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type UserHandler struct {
@@ -21,6 +26,9 @@ func (h *UserHandler) HandleGetUser(c *fiber.Ctx) error {
 	user, err := h.userStore.GetUserById(c.Context(), id)
 
 	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return c.JSON(map[string]string{"error": "user not found"})
+		}
 		return err
 	}
 
@@ -44,8 +52,8 @@ func (h *UserHandler) HandleCreateUser(c *fiber.Ctx) error {
 		return err
 	}
 
-	if err := params.Validate(); err != nil {
-		return err
+	if errors := params.Validate(); len(errors) != 0 {
+		return c.JSON(map[string]any{"error": errors})
 	}
 
 	user, err := types.NewUserFromParams(params)
@@ -61,4 +69,41 @@ func (h *UserHandler) HandleCreateUser(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(newUser)
+}
+
+func (h *UserHandler) HandleUpdateUser(c *fiber.Ctx) error {
+	var (
+		userId = c.Params("id")
+		values = bson.D{}
+	)
+
+	oid, err := primitive.ObjectIDFromHex(userId)
+
+	if err != nil {
+		return err
+	}
+
+	if err = c.BodyParser(&values); err != nil {
+		return err
+	}
+
+	filter := bson.D{{Key: "_id", Value: oid}}
+
+	if err = h.userStore.PutUser(c.Context(), filter, values); err != nil {
+		return err
+	}
+
+	return c.JSON(map[string]string{"message": "user recorded updated"})
+}
+
+func (h *UserHandler) HandleDeleteUser(c *fiber.Ctx) error {
+	userId := c.Params("id")
+
+	err := h.userStore.RemoveUser(c.Context(), userId)
+
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(map[string]string{"message": "user deleted", "deleted": userId})
 }

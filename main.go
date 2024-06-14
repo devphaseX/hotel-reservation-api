@@ -3,14 +3,11 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 
 	"github.com/devphaseX/hotel-reservation-api/api"
 	"github.com/devphaseX/hotel-reservation-api/db"
-	"github.com/devphaseX/hotel-reservation-api/types"
 	"github.com/gofiber/fiber/v2"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -37,29 +34,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	userCol := client.Database(dbName).Collection(userColName)
-
-	ctx := context.Background()
-
-	// user := types.User{
-	// 	FirstName: "Ayomide",
-	// 	LastName:  "Lawal",
-	// }
-
-	// res, err := userCol.InsertOne(context.Background(), user)
-
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	var user types.User
-
-	if err = userCol.FindOne(ctx, bson.M{}).Decode(&user); err != nil {
-		log.Panic(err)
-	}
-
-	fmt.Printf("%#v", user)
-
 	flag.Parse()
 	app := fiber.New(config)
 
@@ -72,6 +46,8 @@ func main() {
 	apiv1.Get("/users", userHandler.HandlerGetUsers)
 	apiv1.Post("/users", userHandler.HandleCreateUser)
 	apiv1.Get("/users/:id", userHandler.HandleGetUser)
+	apiv1.Put("/users/:id", userHandler.HandleUpdateUser)
+	apiv1.Delete("/users/:id", userHandler.HandleDeleteUser)
 	app.Listen(*listenAddress)
 }
 
