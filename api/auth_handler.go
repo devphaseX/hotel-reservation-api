@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -29,8 +30,20 @@ type signInBodyParams struct {
 }
 
 type SignInResp struct {
-	User  *types.User `json:"user"`
-	Token string      `json:"token"`
+	User  types.User `json:"user"`
+	Token string     `json:"token"`
+}
+
+type FailedResp struct {
+	Type    string `json:"type"`
+	Message string `json:"message"`
+}
+
+func invalidCredentials(c *fiber.Ctx) error {
+	return c.Status(http.StatusNotFound).JSON(FailedResp{
+		Type:    "error",
+		Message: "invalid credentials mismatch email or password",
+	})
 }
 
 func (h *AuthHandler) SignIn(c *fiber.Ctx) error {
@@ -46,7 +59,7 @@ func (h *AuthHandler) SignIn(c *fiber.Ctx) error {
 	if err != nil {
 
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return errors.New("invalid credentials mismatch email or password")
+			return invalidCredentials(c)
 		}
 
 		fmt.Println(err)
@@ -54,18 +67,16 @@ func (h *AuthHandler) SignIn(c *fiber.Ctx) error {
 	}
 
 	if !types.IsValidPassword(user.EncryptedPassword, body.Password) {
-		return errors.New("invalid credentials mismatch email or password")
+		return invalidCredentials(c)
 	}
 
 	token, err := createTokenClaim(user)
-
 	if err != nil {
 		fmt.Println("failed to sign token: %w", err)
 		return errors.New("failed to sign user")
 	}
 
-	fmt.Println(token)
-	return c.JSON(SignInResp{User: user, Token: token})
+	return c.JSON(SignInResp{User: *user, Token: token})
 }
 
 func createTokenClaim(user *types.User) (string, error) {
