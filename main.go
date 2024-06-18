@@ -6,16 +6,11 @@ import (
 	"log"
 
 	"github.com/devphaseX/hotel-reservation-api/api"
+	"github.com/devphaseX/hotel-reservation-api/api/middleware"
 	"github.com/devphaseX/hotel-reservation-api/db"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-)
-
-const (
-	uri         = "mongodb://localhost:27017"
-	dbName      = "hotel-reservation"
-	userColName = "users"
 )
 
 // Create a new fiber instance with custom config
@@ -28,29 +23,54 @@ var config = fiber.Config{
 
 func main() {
 	listenAddress := flag.String("listenAddress", ":5000", "The listen address of the api server")
+
+	var err error
 	client, err := mongo.Connect(context.TODO(), options.Client().
-		ApplyURI(uri))
+		ApplyURI(db.URI))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	flag.Parse()
+
 	app := fiber.New(config)
+	var (
+		//store initialization
+		userStore  = db.NewMongoUserStore(client)
+		hotelStore = db.NewMongoHotelStore(client)
+		roomStore  = db.NewMongoRoomStore(client, hotelStore)
 
-	apiv1 := app.Group("/api/v1")
+		store = &db.Store{
+			User:  userStore,
+			Hotel: hotelStore,
+			Room:  roomStore,
+		}
 
-	//handler initialization
-	userHandler := api.NewUserHandler(db.NewMongoUserStore(client, dbName))
+		apiNonVersion = app.Group("/api")
+		authApi       = apiNonVersion.Group("/auth")
+		apiv1         = app.Group("/api/v1")
+		//handler initialization
+		userHandler  = api.NewUserHandler(userStore)
+		authHandler  = api.NewAuthHandler(userStore)
+		hotelHandler = api.NewHotelHandler(store)
+	)
 
-	app.Get("/foo", handleFoo)
-	apiv1.Get("/users", userHandler.HandlerGetUsers)
-	apiv1.Post("/users", userHandler.HandleCreateUser)
-	apiv1.Get("/users/:id", userHandler.HandleGetUser)
-	apiv1.Put("/users/:id", userHandler.HandleUpdateUser)
-	apiv1.Delete("/users/:id", userHandler.HandleDeleteUser)
+	//public route
+	authApi.Post("/sign-in", authHandler.SignIn)
+
+	//protected routes
+
+	userApi := apiv1.Group("/users", middleware.JWTAuth)
+
+	userApi.Get("/", userHandler.HandlerGetUsers)
+	userApi.Post("/", userHandler.HandleCreateUser)
+	userApi.Get("/users/:id", userHandler.HandleGetUser)
+	userApi.Put("/users/:id", userHandler.HandleUpdateUser)
+	userApi.Delete("/users/:id", userHandler.HandleDeleteUser)
+
+	hotelv1Api := apiv1.Get("/hotels", middleware.JWTAuth)
+	hotelv1Api.Get("/hotels", hotelHandler.HandlerGets)
+	hotelv1Api.Get("/hotels/:id/rooms", hotelHandler.HandleGetRooms)
+
 	app.Listen(*listenAddress)
-}
-
-func handleFoo(c *fiber.Ctx) error {
-	return c.JSON(map[string]string{"msg": "Hello, it worked"})
 }

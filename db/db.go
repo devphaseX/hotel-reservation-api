@@ -1,14 +1,13 @@
 package db
 
-import (
-	"regexp"
-	"strings"
+const (
+	URI         = "mongodb://localhost:27017"
+	DBNAME      = "hotel-reservation"
+	TEST_DBNAME = "hotel-reservation-test"
 )
 
-func toSnakeCase(str string) string {
-	pattern := regexp.MustCompile(`([A-Z])`)
-	result := pattern.ReplaceAllStringFunc(str, func(match string) string {
-		return "_" + strings.ToLower(match)
-	})
-	return strings.TrimPrefix(result, "_")
+type Store struct {
+	User  UserStore
+	Hotel HotelStore
+	Room  RoomStore
 }

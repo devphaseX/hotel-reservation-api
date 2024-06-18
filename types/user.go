@@ -90,3 +90,7 @@ func NewUserFromParams(params CreateUserParams) (*User, error) {
 		EncryptedPassword: string(encp),
 	}, nil
 }
+
+func IsValidPassword(epw, pw string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(epw), []byte(pw)) == nil
+}
