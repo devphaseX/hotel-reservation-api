@@ -76,6 +76,7 @@ func main() {
 	hotelv1Api.Get("/:id/rooms", hotelHandler.HandleGetRooms)
 
 	roomv1Api := apiv1.Group("/rooms", middleware.JWTAuth(userStore))
+	roomv1Api.Get("/", roomHandler.HandleGetRooms)
 	roomv1Api.Post("/:id/book", roomHandler.HandlerBookRoom)
 
 	app.Listen(*listenAddress)

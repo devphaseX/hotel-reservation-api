@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -42,6 +43,25 @@ func NewRoomHandler(store *db.Store) *RoomHandler {
 	return &RoomHandler{store: store}
 }
 
+func (h *RoomHandler) HandleGetRooms(c *fiber.Ctx) error {
+	_, ok := c.Context().Value("user").(*types.User)
+
+	if !ok {
+		return c.Status(http.StatusUnauthorized).JSON(FailedResp{
+			Type:    "error",
+			Message: "Unauthorized",
+		})
+	}
+
+	rooms, err := h.store.Room.GetRooms(c.Context(), bson.M{})
+
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(rooms)
+}
+
 func (h *RoomHandler) HandlerBookRoom(c *fiber.Ctx) error {
 	user, ok := c.Context().Value("user").(*types.User)
 
@@ -68,27 +88,28 @@ func (h *RoomHandler) HandlerBookRoom(c *fiber.Ctx) error {
 		return err
 	}
 
-	bookedRoomFilter := bson.M{
-		"fromDate": bson.M{"$gte": params.FromDate},
-		"toDate":   bson.M{"$lte": params.ToDate},
-		"roomId":   bson.M{"$eq": oid},
-	}
+	available, err := h.RoomAvailable(c.Context(), oid, params)
 
-	bookedRooms, err := h.store.Booking.GetBookings(c.Context(), bookedRoomFilter)
 	if err != nil {
-		fmt.Println(err)
 		return errors.New("failed to book room")
+
 	}
 
-	if len(bookedRooms) != 0 {
-		return errors.New("room already booked")
+	if !available {
+		return c.Status(http.StatusConflict).JSON(FailedResp{
+			Type:    "error",
+			Message: "room already booked",
+		})
 	}
 
 	room, err := h.store.Room.GetRoom(c.Context(), bson.M{"_id": oid})
 
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return errors.New("room not found")
+			return c.Status(http.StatusNotFound).JSON(FailedResp{
+				Type:    "error",
+				Message: "room not found",
+			})
 		}
 
 		fmt.Printf("failed to get room: %v\n", err)
@@ -110,4 +131,22 @@ func (h *RoomHandler) HandlerBookRoom(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(booking)
+}
+
+func (h *RoomHandler) RoomAvailable(ctx context.Context, roomId primitive.ObjectID, params BookRoomParams) (bool, error) {
+
+	bookedRoomFilter := bson.M{
+		"fromDate": bson.M{"$gte": params.FromDate},
+		"toDate":   bson.M{"$lte": params.ToDate},
+		"roomId":   bson.M{"$eq": roomId},
+	}
+
+	bookedRooms, err := h.store.Booking.GetBookings(ctx, bookedRoomFilter)
+	fmt.Println(bookedRooms)
+	if err != nil {
+		fmt.Println(err)
+		return false, err
+	}
+
+	return len(bookedRooms) == 0, nil
 }
