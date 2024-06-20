@@ -36,14 +36,16 @@ func main() {
 	app := fiber.New(config)
 	var (
 		//store initialization
-		userStore  = db.NewMongoUserStore(client)
-		hotelStore = db.NewMongoHotelStore(client)
-		roomStore  = db.NewMongoRoomStore(client, hotelStore)
+		userStore    = db.NewMongoUserStore(client)
+		hotelStore   = db.NewMongoHotelStore(client)
+		roomStore    = db.NewMongoRoomStore(client, hotelStore)
+		bookingStore = db.NewMongoBookingStore(client)
 
 		store = &db.Store{
-			User:  userStore,
-			Hotel: hotelStore,
-			Room:  roomStore,
+			User:    userStore,
+			Hotel:   hotelStore,
+			Room:    roomStore,
+			Booking: bookingStore,
 		}
 
 		apiNonVersion = app.Group("/api")
@@ -53,6 +55,7 @@ func main() {
 		userHandler  = api.NewUserHandler(userStore)
 		authHandler  = api.NewAuthHandler(userStore)
 		hotelHandler = api.NewHotelHandler(store)
+		roomHandler  = api.NewRoomHandler(store)
 	)
 
 	//public route
@@ -60,7 +63,7 @@ func main() {
 
 	//protected routes
 
-	userApi := apiv1.Group("/users", middleware.JWTAuth)
+	userApi := apiv1.Group("/users", middleware.JWTAuth(userStore))
 
 	userApi.Get("/", userHandler.HandlerGetUsers)
 	userApi.Post("/", userHandler.HandleCreateUser)
@@ -68,9 +71,12 @@ func main() {
 	userApi.Put("/users/:id", userHandler.HandleUpdateUser)
 	userApi.Delete("/users/:id", userHandler.HandleDeleteUser)
 
-	hotelv1Api := apiv1.Get("/hotels", middleware.JWTAuth)
-	hotelv1Api.Get("/hotels", hotelHandler.HandlerGets)
-	hotelv1Api.Get("/hotels/:id/rooms", hotelHandler.HandleGetRooms)
+	hotelv1Api := apiv1.Group("/hotels", middleware.JWTAuth(userStore))
+	hotelv1Api.Get("/", hotelHandler.HandlerGets)
+	hotelv1Api.Get("/:id/rooms", hotelHandler.HandleGetRooms)
+
+	roomv1Api := apiv1.Group("/rooms", middleware.JWTAuth(userStore))
+	roomv1Api.Post("/:id/book", roomHandler.HandlerBookRoom)
 
 	app.Listen(*listenAddress)
 }

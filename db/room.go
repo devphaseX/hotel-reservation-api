@@ -12,8 +12,9 @@ import (
 const roomCollName = "room"
 
 type RoomStore interface {
-	Insert(ctx context.Context, hotel *types.Room) (*types.Room, error)
+	Insert(ctx context.Context, room *types.Room) (*types.Room, error)
 	GetRooms(ctx context.Context, filter bson.M) ([]*types.Room, error)
+	GetRoom(ctx context.Context, filter bson.M) (*types.Room, error)
 }
 
 type MongoRoomStore struct {
@@ -64,4 +65,16 @@ func (h *MongoRoomStore) GetRooms(ctx context.Context, filter bson.M) ([]*types.
 	}
 
 	return rooms, nil
+}
+
+func (h *MongoRoomStore) GetRoom(ctx context.Context, filter bson.M) (*types.Room, error) {
+	res := h.coll.FindOne(ctx, filter)
+
+	var room *types.Room
+
+	if err := res.Decode(&room); err != nil {
+		return nil, err
+	}
+
+	return room, nil
 }
