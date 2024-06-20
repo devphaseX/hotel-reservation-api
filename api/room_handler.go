@@ -24,6 +24,20 @@ type BookRoomParams struct {
 	NumPersons int       `json:"numPersons"`
 }
 
+func (p *BookRoomParams) Validate() error {
+	now := time.Now()
+
+	if now.After(p.FromDate) || p.ToDate.Before(p.FromDate) {
+		return errors.New("cannot book a room in the past")
+	}
+
+	if p.NumPersons < 1 {
+		return errors.New("require to provide a single person for the room")
+	}
+
+	return nil
+}
+
 func NewRoomHandler(store *db.Store) *RoomHandler {
 	return &RoomHandler{store: store}
 }
@@ -44,6 +58,32 @@ func (h *RoomHandler) HandlerBookRoom(c *fiber.Ctx) error {
 		return errors.New("not valid id")
 	}
 
+	var params BookRoomParams
+
+	if err := c.QueryParser(&params); err != nil {
+		return err
+	}
+
+	if err := params.Validate(); err != nil {
+		return err
+	}
+
+	bookedRoomFilter := bson.M{
+		"fromDate": bson.M{"$gte": params.FromDate},
+		"toDate":   bson.M{"$lte": params.ToDate},
+		"roomId":   bson.M{"$eq": oid},
+	}
+
+	bookedRooms, err := h.store.Booking.GetBookings(c.Context(), bookedRoomFilter)
+	if err != nil {
+		fmt.Println(err)
+		return errors.New("failed to book room")
+	}
+
+	if len(bookedRooms) != 0 {
+		return errors.New("room already booked")
+	}
+
 	room, err := h.store.Room.GetRoom(c.Context(), bson.M{"_id": oid})
 
 	if err != nil {
@@ -53,12 +93,6 @@ func (h *RoomHandler) HandlerBookRoom(c *fiber.Ctx) error {
 
 		fmt.Printf("failed to get room: %v\n", err)
 		return errors.New("failed to set a booking")
-	}
-
-	var params BookRoomParams
-
-	if err := c.QueryParser(&params); err != nil {
-		return err
 	}
 
 	booking := types.Booking{
