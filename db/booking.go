@@ -14,6 +14,8 @@ const bookingCollName = "booking"
 type BookingStore interface {
 	Insert(ctx context.Context, booking *types.Booking) (*types.Booking, error)
 	GetBookings(ctx context.Context, filter bson.M) ([]*types.Booking, error)
+	GetBooking(ctx context.Context, filter bson.M) (*types.Booking, error)
+	UpdateBooking(ctx context.Context, filter bson.M, update bson.M) error
 }
 
 type MongoBookingStore struct {
@@ -54,4 +56,24 @@ func (s *MongoBookingStore) GetBookings(ctx context.Context, filter bson.M) ([]*
 	}
 
 	return bookings, nil
+}
+
+func (s *MongoBookingStore) GetBooking(ctx context.Context, filter bson.M) (*types.Booking, error) {
+	res := s.coll.FindOne(ctx, filter)
+
+	var booking *types.Booking
+
+	if err := res.Decode(&booking); err != nil {
+		return nil, err
+	}
+
+	return booking, nil
+}
+
+func (s *MongoBookingStore) UpdateBooking(ctx context.Context, filter bson.M, update bson.M) error {
+	setUpdate := bson.M{"$set": update}
+	if _, err := s.coll.UpdateOne(ctx, filter, setUpdate); err != nil {
+		return err
+	}
+	return nil
 }

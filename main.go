@@ -50,12 +50,14 @@ func main() {
 
 		apiNonVersion = app.Group("/api")
 		authApi       = apiNonVersion.Group("/auth")
-		apiv1         = app.Group("/api/v1")
+		apiv1         = app.Group("/api/v1", middleware.JWTAuth(userStore))
+		adminv1Api    = apiv1.Group("/admin", middleware.AdminAuth)
 		//handler initialization
-		userHandler  = api.NewUserHandler(userStore)
-		authHandler  = api.NewAuthHandler(userStore)
-		hotelHandler = api.NewHotelHandler(store)
-		roomHandler  = api.NewRoomHandler(store)
+		userHandler    = api.NewUserHandler(userStore)
+		authHandler    = api.NewAuthHandler(userStore)
+		hotelHandler   = api.NewHotelHandler(store)
+		roomHandler    = api.NewRoomHandler(store)
+		bookingHandler = api.NewBookingHandler(store)
 	)
 
 	//public route
@@ -78,6 +80,20 @@ func main() {
 	roomv1Api := apiv1.Group("/rooms", middleware.JWTAuth(userStore))
 	roomv1Api.Get("/", roomHandler.HandleGetRooms)
 	roomv1Api.Post("/:id/book", roomHandler.HandlerBookRoom)
+
+	//admin bookings
+	_ = adminv1Api
+	adminbookingv1Api := adminv1Api.Group("/bookings")
+
+	adminbookingv1Api.Get("/", bookingHandler.GetBookings)
+	adminbookingv1Api.Get("/:id", bookingHandler.GetBooking)
+	adminbookingv1Api.Post("/:id", bookingHandler.CancelBooking)
+
+	userBookingv1Api := apiv1.Group("/bookings")
+
+	userBookingv1Api.Get("/", bookingHandler.GetBookings)
+	userBookingv1Api.Get("/:id", bookingHandler.GetBooking)
+	userBookingv1Api.Post("/:id/cancel", bookingHandler.CancelBooking)
 
 	app.Listen(*listenAddress)
 }
