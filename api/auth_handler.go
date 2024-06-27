@@ -70,7 +70,7 @@ func (h *AuthHandler) SignIn(c *fiber.Ctx) error {
 		return invalidCredentials(c)
 	}
 
-	token, err := createTokenClaim(user)
+	token, err := CreateTokenClaim(user)
 	if err != nil {
 		fmt.Println("failed to sign token: %w", err)
 		return errors.New("failed to sign user")
@@ -79,7 +79,7 @@ func (h *AuthHandler) SignIn(c *fiber.Ctx) error {
 	return c.JSON(SignInResp{User: *user, Token: token})
 }
 
-func createTokenClaim(user *types.User) (string, error) {
+func CreateTokenClaim(user *types.User) (string, error) {
 	expires := time.Now().Add(time.Hour * 4)
 	claim := jwt.MapClaims{
 		"id":      user.ID,

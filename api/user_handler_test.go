@@ -2,39 +2,13 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"log"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/devphaseX/hotel-reservation-api/db"
 	"github.com/devphaseX/hotel-reservation-api/types"
 	"github.com/gofiber/fiber/v2"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
-type testUserStore struct {
-	db.UserStore
-}
-
-func (ts *testUserStore) tearDown(t *testing.T) {
-	if err := ts.UserStore.Drop(context.TODO()); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func setup() *testUserStore {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(db.URI))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return &testUserStore{
-		UserStore: db.NewMongoUserStore(client),
-	}
-}
 
 func TestCreateUser(t *testing.T) {
 	db := setup()
@@ -43,7 +17,7 @@ func TestCreateUser(t *testing.T) {
 
 	app := fiber.New()
 
-	userHandler := NewUserHandler(db.UserStore)
+	userHandler := NewUserHandler(db.User)
 
 	app.Post("/", userHandler.HandleCreateUser)
 
