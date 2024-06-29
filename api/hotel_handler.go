@@ -1,9 +1,8 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/devphaseX/hotel-reservation-api/db"
+	"github.com/devphaseX/hotel-reservation-api/utils"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -28,10 +27,8 @@ func (h *HotelHandler) HandlerGets(c *fiber.Ctx) error {
 	var query GetHotelsQueryParam
 
 	if err := c.QueryParser(&query); err != nil {
-		return err
+		return utils.ErrBadJSON()
 	}
-
-	fmt.Println(query)
 
 	hotels, err := h.store.Hotel.GetMany(c.Context())
 
@@ -49,7 +46,7 @@ func (h *HotelHandler) HandleGet(c *fiber.Ctx) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 
 	if err != nil {
-		return err
+		return utils.ErrInvalidID()
 	}
 
 	hotel, err := h.store.Hotel.GetOne(c.Context(), oid)
@@ -67,7 +64,7 @@ func (h *HotelHandler) HandleGetRooms(c *fiber.Ctx) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 
 	if err != nil {
-		return err
+		return utils.ErrInvalidID()
 	}
 
 	filters := bson.M{"hotelId": oid}

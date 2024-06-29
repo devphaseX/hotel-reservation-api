@@ -9,6 +9,7 @@ import (
 
 	"github.com/devphaseX/hotel-reservation-api/db"
 	"github.com/devphaseX/hotel-reservation-api/types"
+	"github.com/devphaseX/hotel-reservation-api/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -34,13 +35,8 @@ type SignInResp struct {
 	Token string     `json:"token"`
 }
 
-type FailedResp struct {
-	Type    string `json:"type"`
-	Message string `json:"message"`
-}
-
 func invalidCredentials(c *fiber.Ctx) error {
-	return c.Status(http.StatusNotFound).JSON(FailedResp{
+	return c.Status(http.StatusNotFound).JSON(utils.FailedResp{
 		Type:    "error",
 		Message: "invalid credentials mismatch email or password",
 	})
@@ -50,8 +46,7 @@ func (h *AuthHandler) SignIn(c *fiber.Ctx) error {
 	var body signInBodyParams
 
 	if err := c.BodyParser(&body); err != nil {
-		fmt.Println(err)
-		return errors.New("invalid payload received")
+		return utils.ErrBadJSON()
 	}
 
 	user, err := h.userStore.GetUserByEmail(c.Context(), body.Email)
@@ -62,7 +57,6 @@ func (h *AuthHandler) SignIn(c *fiber.Ctx) error {
 			return invalidCredentials(c)
 		}
 
-		fmt.Println(err)
 		return errors.New("failed to sign user in")
 	}
 

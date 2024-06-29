@@ -3,12 +3,12 @@ package api
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/devphaseX/hotel-reservation-api/db"
 	"github.com/devphaseX/hotel-reservation-api/types"
+	"github.com/devphaseX/hotel-reservation-api/utils"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -47,7 +47,7 @@ func (h *RoomHandler) HandleGetRooms(c *fiber.Ctx) error {
 	_, ok := c.Context().Value("user").(*types.User)
 
 	if !ok {
-		return c.Status(http.StatusUnauthorized).JSON(FailedResp{
+		return c.Status(http.StatusUnauthorized).JSON(utils.FailedResp{
 			Type:    "error",
 			Message: "Unauthorized",
 		})
@@ -66,26 +66,24 @@ func (h *RoomHandler) HandlerBookRoom(c *fiber.Ctx) error {
 	user, ok := c.Context().Value("user").(*types.User)
 
 	if !ok {
-		return c.Status(http.StatusUnauthorized).JSON(FailedResp{
-			Type:    "error",
-			Message: "Unauthorized",
-		})
+		return utils.ErrUnauthorized()
 	}
 
 	oid, err := primitive.ObjectIDFromHex(c.Params("id"))
 
 	if err != nil {
-		return errors.New("not valid id")
+		return utils.ErrInvalidID()
 	}
 
 	var params BookRoomParams
 
 	if err := c.QueryParser(&params); err != nil {
-		return err
+		return utils.ErrBadJSON()
 	}
 
 	if err := params.Validate(); err != nil {
-		return err
+		return utils.NewValidationError(err)
+
 	}
 
 	available, err := h.RoomAvailable(c.Context(), oid, params)
@@ -96,23 +94,16 @@ func (h *RoomHandler) HandlerBookRoom(c *fiber.Ctx) error {
 	}
 
 	if !available {
-		return c.Status(http.StatusConflict).JSON(FailedResp{
-			Type:    "error",
-			Message: "room already booked",
-		})
+		return utils.NewError(http.StatusConflict, "room already booked")
 	}
 
 	room, err := h.store.Room.GetRoom(c.Context(), bson.M{"_id": oid})
 
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return c.Status(http.StatusNotFound).JSON(FailedResp{
-				Type:    "error",
-				Message: "room not found",
-			})
+			return utils.NewError(http.StatusNotFound, "room not found")
 		}
 
-		fmt.Printf("failed to get room: %v\n", err)
 		return errors.New("failed to set a booking")
 	}
 
@@ -142,9 +133,7 @@ func (h *RoomHandler) RoomAvailable(ctx context.Context, roomId primitive.Object
 	}
 
 	bookedRooms, err := h.store.Booking.GetBookings(ctx, bookedRoomFilter)
-	fmt.Println(bookedRooms)
 	if err != nil {
-		fmt.Println(err)
 		return false, err
 	}
 

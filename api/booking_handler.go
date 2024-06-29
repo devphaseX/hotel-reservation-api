@@ -2,10 +2,10 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/devphaseX/hotel-reservation-api/db"
+	"github.com/devphaseX/hotel-reservation-api/utils"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -26,7 +26,7 @@ func (h *BookingHandler) GetBookings(c *fiber.Ctx) error {
 	user, err := getAuthUser(c)
 
 	if err != nil {
-		return c.Status(http.StatusUnauthorized).JSON(FailedResp{Type: "error", Message: "unauthorized"})
+		return utils.ErrUnauthorized()
 
 	}
 
@@ -49,14 +49,14 @@ func (h *BookingHandler) GetBooking(c *fiber.Ctx) error {
 	user, err := getAuthUser(c)
 
 	if err != nil {
-		return c.Status(http.StatusUnauthorized).JSON(FailedResp{Type: "error", Message: "unauthorized"})
+		return utils.ErrUnauthorized()
 
 	}
 
 	oid, err := primitive.ObjectIDFromHex(c.Params("id"))
 
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(FailedResp{Type: "error", Message: "not a valid id"})
+		return utils.ErrInvalidID()
 	}
 
 	filter := bson.M{"_id": bson.M{"$eq": oid}}
@@ -69,10 +69,8 @@ func (h *BookingHandler) GetBooking(c *fiber.Ctx) error {
 
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return c.Status(http.StatusNotFound).JSON(FailedResp{Type: "error", Message: "booking not found"})
+			return utils.NewError(http.StatusConflict, "booking not found")
 		}
-
-		fmt.Println(err)
 
 		return errors.New("failed to get booking")
 	}
@@ -84,14 +82,14 @@ func (h *BookingHandler) CancelBooking(c *fiber.Ctx) error {
 	user, err := getAuthUser(c)
 
 	if err != nil {
-		return c.Status(http.StatusUnauthorized).JSON(FailedResp{Type: "error", Message: "unauthorized"})
+		return utils.ErrUnauthorized()
 
 	}
 
 	oid, err := primitive.ObjectIDFromHex(c.Params("id"))
 
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(FailedResp{Type: "error", Message: "not a valid id"})
+		return utils.ErrInvalidID()
 	}
 
 	filter := bson.M{"_id": bson.M{"$eq": oid}}
@@ -101,7 +99,7 @@ func (h *BookingHandler) CancelBooking(c *fiber.Ctx) error {
 	}
 
 	if err = h.store.Booking.UpdateBooking(c.Context(), filter, bson.M{"cancel": true}); err != nil {
-		return c.Status(http.StatusNotFound).JSON(FailedResp{Type: "error", Message: "not found"})
+		return utils.NewError(http.StatusNotFound, "booking not found")
 	}
 
 	return c.JSON(map[string]any{"message": "updated"})

@@ -68,10 +68,10 @@ func (h *MongoHotelStore) GetMany(ctx context.Context) ([]*types.Hotel, error) {
 func (h *MongoHotelStore) GetOne(ctx context.Context, id primitive.ObjectID) (*types.Hotel, error) {
 	res := h.coll.FindOne(ctx, bson.M{"_id": id})
 
-	var hotel *types.Hotel
-	if err := res.Decode(hotel); err != nil {
+	var hotel types.Hotel
+	if err := res.Decode(&hotel); err != nil {
 		return nil, err
 	}
 
-	return hotel, nil
+	return &hotel, nil
 }

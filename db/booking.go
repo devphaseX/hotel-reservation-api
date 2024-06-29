@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/devphaseX/hotel-reservation-api/types"
 	"go.mongodb.org/mongo-driver/bson"
@@ -39,7 +38,6 @@ func (s *MongoBookingStore) Insert(ctx context.Context, booking *types.Booking) 
 	}
 
 	booking.ID = res.InsertedID.(primitive.ObjectID)
-	fmt.Println("booking", booking)
 	return booking, nil
 }
 

@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/devphaseX/hotel-reservation-api/api"
 	"github.com/devphaseX/hotel-reservation-api/api/middleware"
 	"github.com/devphaseX/hotel-reservation-api/db"
+	"github.com/devphaseX/hotel-reservation-api/utils"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -17,7 +20,15 @@ import (
 var config = fiber.Config{
 	// Override default error handler
 	ErrorHandler: func(ctx *fiber.Ctx, err error) error {
-		return ctx.JSON(map[string]string{"error": err.Error()})
+
+		if err, ok := err.(utils.Error); ok {
+			return ctx.Status(err.Code).JSON(err)
+		}
+
+		fmt.Println("global error", err.Error())
+
+		internalError := utils.NewError(http.StatusInternalServerError, err.Error())
+		return ctx.Status(internalError.Code).JSON(internalError)
 	},
 }
 
@@ -75,6 +86,8 @@ func main() {
 
 	hotelv1Api := apiv1.Group("/hotels", middleware.JWTAuth(userStore))
 	hotelv1Api.Get("/", hotelHandler.HandlerGets)
+	hotelv1Api.Get("/:id", hotelHandler.HandleGet)
+
 	hotelv1Api.Get("/:id/rooms", hotelHandler.HandleGetRooms)
 
 	roomv1Api := apiv1.Group("/rooms", middleware.JWTAuth(userStore))

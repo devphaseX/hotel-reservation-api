@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/devphaseX/hotel-reservation-api/db/fixtures"
+	"github.com/devphaseX/hotel-reservation-api/utils"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -97,7 +98,7 @@ func TestAuthFailedWithWrongPassword(t *testing.T) {
 		t.Fatal("expect auth to failed to invalid credentials error")
 	}
 
-	var respPayload FailedResp
+	var respPayload utils.FailedResp
 
 	if err = json.NewDecoder(resp.Body).Decode(&respPayload); err != nil {
 		t.Fatal(err)

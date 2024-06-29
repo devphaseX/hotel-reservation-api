@@ -18,7 +18,7 @@ type Dropper interface {
 
 type UserStore interface {
 	Dropper
-	GetUserById(ctx context.Context, id string) (*types.User, error)
+	GetUserById(ctx context.Context, id primitive.ObjectID) (*types.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*types.User, error)
 	GetUsers(ctx context.Context) ([]*types.User, error)
 	CreateUser(ctx context.Context, user *types.User) (*types.User, error)
@@ -43,15 +43,9 @@ func (s *MongoUserStore) Drop(ctx context.Context) error {
 	return s.coll.Drop(ctx)
 }
 
-func (s *MongoUserStore) GetUserById(ctx context.Context, id string) (*types.User, error) {
-
-	oid, err := primitive.ObjectIDFromHex(id)
-
-	if err != nil {
-		return nil, fmt.Errorf("provided id not valid: %w", err)
-	}
+func (s *MongoUserStore) GetUserById(ctx context.Context, id primitive.ObjectID) (*types.User, error) {
 	var user types.User
-	err = s.coll.FindOne(ctx, bson.M{"_id": oid}).Decode(&user)
+	err := s.coll.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
 
 	if err != nil {
 		return nil, err

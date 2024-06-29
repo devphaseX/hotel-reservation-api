@@ -2,9 +2,11 @@ package api
 
 import (
 	"errors"
+	"net/http"
 
 	"github.com/devphaseX/hotel-reservation-api/db"
 	"github.com/devphaseX/hotel-reservation-api/types"
+	"github.com/devphaseX/hotel-reservation-api/utils"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -23,11 +25,18 @@ func NewUserHandler(userStore db.UserStore) *UserHandler {
 
 func (h *UserHandler) HandleGetUser(c *fiber.Ctx) error {
 	id := c.Params("id")
-	user, err := h.userStore.GetUserById(c.Context(), id)
+
+	oid, err := primitive.ObjectIDFromHex(id)
+
+	if err != nil {
+		return utils.ErrInvalidID()
+	}
+
+	user, err := h.userStore.GetUserById(c.Context(), oid)
 
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return c.JSON(map[string]string{"error": "user not found"})
+			return utils.NewError(http.StatusNotFound, "user not found")
 		}
 		return err
 	}
@@ -49,11 +58,11 @@ func (h *UserHandler) HandleCreateUser(c *fiber.Ctx) error {
 	var params types.CreateUserParams
 
 	if err := c.BodyParser(&params); err != nil {
-		return err
+		return utils.ErrBadJSON()
 	}
 
 	if errors := params.Validate(); len(errors) != 0 {
-		return c.JSON(map[string]any{"error": errors})
+		return utils.NewValidationError(errors)
 	}
 
 	user, err := types.NewUserFromParams(params)
@@ -80,7 +89,7 @@ func (h *UserHandler) HandleUpdateUser(c *fiber.Ctx) error {
 	oid, err := primitive.ObjectIDFromHex(userId)
 
 	if err != nil {
-		return err
+		return utils.ErrInvalidID()
 	}
 
 	if err = c.BodyParser(&values); err != nil {
