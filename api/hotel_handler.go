@@ -1,11 +1,16 @@
 package api
 
 import (
+	"errors"
+	"fmt"
+	"net/http"
+
 	"github.com/devphaseX/hotel-reservation-api/db"
 	"github.com/devphaseX/hotel-reservation-api/utils"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type HotelHandler struct {
@@ -31,6 +36,7 @@ func (h *HotelHandler) HandlerGets(c *fiber.Ctx) error {
 	}
 
 	hotels, err := h.store.Hotel.GetMany(c.Context())
+	fmt.Println(hotels)
 
 	if err != nil {
 		return err
@@ -52,6 +58,10 @@ func (h *HotelHandler) HandleGet(c *fiber.Ctx) error {
 	hotel, err := h.store.Hotel.GetOne(c.Context(), oid)
 
 	if err != nil {
+
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return utils.NewError(http.StatusNotFound, "hotel not found")
+		}
 		return err
 	}
 

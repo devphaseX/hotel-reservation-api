@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -29,13 +30,13 @@ func JWTAuth(userStore db.UserStore) fiber.Handler {
 			time.Parse(time.RFC3339, claim["expires"].(string))
 
 		if err != nil || expires.Before(time.Now()) {
-			return utils.ErrUnauthorized("expired token")
+			return errors.New("expired token")
 		}
 
 		id, err := primitive.ObjectIDFromHex(claim["id"].(string))
 
 		if err != nil {
-			return utils.ErrUnauthorized()
+			return err
 		}
 
 		if ok {

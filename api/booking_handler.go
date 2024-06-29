@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/devphaseX/hotel-reservation-api/db"
@@ -38,6 +39,7 @@ func (h *BookingHandler) GetBookings(c *fiber.Ctx) error {
 
 	bookings, err := h.store.Booking.GetBookings(c.Context(), filter)
 
+	fmt.Println(bookings, err)
 	if err != nil {
 		return err
 	}
@@ -50,12 +52,12 @@ func (h *BookingHandler) GetBooking(c *fiber.Ctx) error {
 
 	if err != nil {
 		return utils.ErrUnauthorized()
-
 	}
 
 	oid, err := primitive.ObjectIDFromHex(c.Params("id"))
 
 	if err != nil {
+		fmt.Println("filter oid", oid, err)
 		return utils.ErrInvalidID()
 	}
 
@@ -67,9 +69,10 @@ func (h *BookingHandler) GetBooking(c *fiber.Ctx) error {
 
 	booking, err := h.store.Booking.GetBooking(c.Context(), filter)
 
+	fmt.Println("booking err", err)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return utils.NewError(http.StatusConflict, "booking not found")
+			return utils.NewError(http.StatusNotFound, "booking not found")
 		}
 
 		return errors.New("failed to get booking")

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -20,12 +19,9 @@ import (
 var config = fiber.Config{
 	// Override default error handler
 	ErrorHandler: func(ctx *fiber.Ctx, err error) error {
-
 		if err, ok := err.(utils.Error); ok {
 			return ctx.Status(err.Code).JSON(err)
 		}
-
-		fmt.Println("global error", err.Error())
 
 		internalError := utils.NewError(http.StatusInternalServerError, err.Error())
 		return ctx.Status(internalError.Code).JSON(internalError)

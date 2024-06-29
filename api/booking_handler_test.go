@@ -14,7 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func TestGettBookings(t *testing.T) {
+func TestAdminGetBookings(t *testing.T) {
 	db := setup()
 
 	defer db.tearDown(t)
@@ -27,7 +27,7 @@ func TestGettBookings(t *testing.T) {
 		from           = time.Now()
 		till           = from.AddDate(0, 0, 5)
 		booking        = fixtures.BookRoom(db.Store, ownerUser.ID, room.ID, 2, from, till, false)
-		app            = fiber.New()
+		app            = fiber.New(TestFiberConfig)
 		bookingHandler = NewBookingHandler(db.Store)
 		admin          = app.Group("/", middleware.JWTAuth(db.Store.User), middleware.AdminAuth)
 	)
@@ -139,7 +139,7 @@ func TestUserGetBooking(t *testing.T) {
 		from           = time.Now()
 		till           = from.AddDate(0, 0, 5)
 		booking        = fixtures.BookRoom(db.Store, ownerUser.ID, room.ID, 2, from, till, false)
-		app            = fiber.New()
+		app            = fiber.New(TestFiberConfig)
 		bookingHandler = NewBookingHandler(db.Store)
 	)
 
@@ -159,8 +159,6 @@ func TestUserGetBooking(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	fmt.Println(res.StatusCode)
 
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("expects status code %d but got %d", http.StatusOK, res.StatusCode)

@@ -3,9 +3,12 @@ package api
 import (
 	"context"
 	"log"
+	"net/http"
 	"testing"
 
 	"github.com/devphaseX/hotel-reservation-api/db"
+	"github.com/devphaseX/hotel-reservation-api/utils"
+	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -38,4 +41,16 @@ func setup() *testStore {
 			Booking: db.NewMongoBookingStore(client),
 		},
 	}
+}
+
+var TestFiberConfig = fiber.Config{
+	// Override default error handler
+	ErrorHandler: func(ctx *fiber.Ctx, err error) error {
+		if err, ok := err.(utils.Error); ok {
+			return ctx.Status(err.Code).JSON(err)
+		}
+
+		internalError := utils.NewError(http.StatusInternalServerError, err.Error())
+		return ctx.Status(internalError.Code).JSON(internalError)
+	},
 }
