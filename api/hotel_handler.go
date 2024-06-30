@@ -45,7 +45,7 @@ func (h *HotelHandler) HandlerGets(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(hotels)
+	return c.JSON(NewResourceResp(hotels, len(hotels), int(*pq.Page)))
 }
 
 func (h *HotelHandler) HandleGet(c *fiber.Ctx) error {

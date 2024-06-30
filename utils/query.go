@@ -42,3 +42,17 @@ func NewPaginate(fiber *fiber.Ctx) (*PaginateQuery, error) {
 
 	return &p, nil
 }
+
+type ResourceResp struct {
+	Data    any `json:"data"`
+	Results int `json:"results"`
+	Page    int `json:"page"`
+}
+
+func NewResourceResp(data any, res, page int) ResourceResp {
+	return ResourceResp{
+		Data:    data,
+		Results: res,
+		Page:    page,
+	}
+}
