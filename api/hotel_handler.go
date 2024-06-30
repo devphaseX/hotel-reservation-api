@@ -39,7 +39,6 @@ func (h *HotelHandler) HandlerGets(c *fiber.Ctx) error {
 	fmt.Println(pq, filterQuery)
 
 	hotels, err := h.store.Hotel.GetMany(c.Context(), pq, filterQuery)
-	fmt.Println(hotels)
 
 	if err != nil {
 		return err
