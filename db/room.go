@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/devphaseX/hotel-reservation-api/types"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -13,8 +12,8 @@ const roomCollName = "room"
 
 type RoomStore interface {
 	Insert(ctx context.Context, room *types.Room) (*types.Room, error)
-	GetRooms(ctx context.Context, filter bson.M) ([]*types.Room, error)
-	GetRoom(ctx context.Context, filter bson.M) (*types.Room, error)
+	GetRooms(ctx context.Context, filter Record) ([]*types.Room, error)
+	GetRoom(ctx context.Context, filter Record) (*types.Room, error)
 }
 
 type MongoRoomStore struct {
@@ -41,7 +40,7 @@ func (h *MongoRoomStore) Insert(ctx context.Context, room *types.Room) (*types.R
 
 	room.ID = res.InsertedID.(primitive.ObjectID)
 
-	filter := bson.M{"_id": room.HotelId}
+	filter := Record{"_id": room.HotelId}
 	update := types.UpdateHotelParams{RoomID: room.ID}
 
 	if err = h.HotelStore.Update(ctx, filter, update); err != nil {
@@ -51,7 +50,7 @@ func (h *MongoRoomStore) Insert(ctx context.Context, room *types.Room) (*types.R
 	return room, nil
 }
 
-func (h *MongoRoomStore) GetRooms(ctx context.Context, filter bson.M) ([]*types.Room, error) {
+func (h *MongoRoomStore) GetRooms(ctx context.Context, filter Record) ([]*types.Room, error) {
 	res, err := h.coll.Find(ctx, filter)
 
 	if err != nil {
@@ -67,7 +66,7 @@ func (h *MongoRoomStore) GetRooms(ctx context.Context, filter bson.M) ([]*types.
 	return rooms, nil
 }
 
-func (h *MongoRoomStore) GetRoom(ctx context.Context, filter bson.M) (*types.Room, error) {
+func (h *MongoRoomStore) GetRoom(ctx context.Context, filter Record) (*types.Room, error) {
 	res := h.coll.FindOne(ctx, filter)
 
 	var room *types.Room

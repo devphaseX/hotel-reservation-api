@@ -8,7 +8,6 @@ import (
 	"github.com/devphaseX/hotel-reservation-api/types"
 	"github.com/devphaseX/hotel-reservation-api/utils"
 	"github.com/gofiber/fiber/v2"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -24,15 +23,7 @@ func NewUserHandler(userStore db.UserStore) *UserHandler {
 }
 
 func (h *UserHandler) HandleGetUser(c *fiber.Ctx) error {
-	id := c.Params("id")
-
-	oid, err := primitive.ObjectIDFromHex(id)
-
-	if err != nil {
-		return utils.ErrInvalidID()
-	}
-
-	user, err := h.userStore.GetUserById(c.Context(), oid)
+	user, err := h.userStore.GetUserById(c.Context(), c.Params("id"))
 
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -96,7 +87,7 @@ func (h *UserHandler) HandleUpdateUser(c *fiber.Ctx) error {
 		return err
 	}
 
-	filter := bson.D{{Key: "_id", Value: oid}}
+	filter := db.Record{"_id": oid}
 
 	if err = h.userStore.PutUser(c.Context(), filter, values); err != nil {
 		return err

@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"log"
-	"net/http"
 
 	"github.com/devphaseX/hotel-reservation-api/api"
 	"github.com/devphaseX/hotel-reservation-api/api/middleware"
@@ -18,14 +17,7 @@ import (
 // Create a new fiber instance with custom config
 var config = fiber.Config{
 	// Override default error handler
-	ErrorHandler: func(ctx *fiber.Ctx, err error) error {
-		if err, ok := err.(utils.Error); ok {
-			return ctx.Status(err.Code).JSON(err)
-		}
-
-		internalError := utils.NewError(http.StatusInternalServerError, err.Error())
-		return ctx.Status(internalError.Code).JSON(internalError)
-	},
+	ErrorHandler: utils.ErrorHandler,
 }
 
 func main() {
@@ -76,8 +68,8 @@ func main() {
 
 	userApi.Get("/", userHandler.HandlerGetUsers)
 	userApi.Post("/", userHandler.HandleCreateUser)
-	userApi.Get("/users/:id", userHandler.HandleGetUser)
-	userApi.Put("/users/:id", userHandler.HandleUpdateUser)
+	userApi.Get("/:id", userHandler.HandleGetUser)
+	userApi.Put("/:id", userHandler.HandleUpdateUser)
 	userApi.Delete("/users/:id", userHandler.HandleDeleteUser)
 
 	hotelv1Api := apiv1.Group("/hotels", middleware.JWTAuth(userStore))

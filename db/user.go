@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/devphaseX/hotel-reservation-api/types"
+	"github.com/devphaseX/hotel-reservation-api/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -18,12 +19,12 @@ type Dropper interface {
 
 type UserStore interface {
 	Dropper
-	GetUserById(ctx context.Context, id primitive.ObjectID) (*types.User, error)
+	GetUserById(ctx context.Context, id string) (*types.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*types.User, error)
 	GetUsers(ctx context.Context) ([]*types.User, error)
 	CreateUser(ctx context.Context, user *types.User) (*types.User, error)
 	RemoveUser(ctx context.Context, id string) error
-	PutUser(ctx context.Context, filter bson.D, update types.UpdateUserParams) error
+	PutUser(ctx context.Context, filter Record, update types.UpdateUserParams) error
 }
 
 type MongoUserStore struct {
@@ -43,11 +44,15 @@ func (s *MongoUserStore) Drop(ctx context.Context) error {
 	return s.coll.Drop(ctx)
 }
 
-func (s *MongoUserStore) GetUserById(ctx context.Context, id primitive.ObjectID) (*types.User, error) {
-	var user types.User
-	err := s.coll.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
+func (s *MongoUserStore) GetUserById(ctx context.Context, id string) (*types.User, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
 
 	if err != nil {
+		return nil, utils.ErrInvalidID()
+	}
+
+	var user types.User
+	if err = s.coll.FindOne(ctx, bson.M{"_id": oid}).Decode(&user); err != nil {
 		return nil, err
 	}
 
@@ -108,7 +113,7 @@ func (s *MongoUserStore) RemoveUser(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *MongoUserStore) PutUser(ctx context.Context, filter bson.D, values types.UpdateUserParams) error {
+func (s *MongoUserStore) PutUser(ctx context.Context, filter Record, values types.UpdateUserParams) error {
 
 	update := bson.D{{Key: "$set", Value: values.ToBSON()}}
 

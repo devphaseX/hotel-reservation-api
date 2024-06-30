@@ -33,6 +33,12 @@ func main() {
 		Room:    db.NewMongoRoomStore(client, hotelStore),
 	}
 
+	for i := 0; i < 100; i++ {
+		name := fmt.Sprintf("random_name_%d", i)
+		loc := fmt.Sprintf("random_loc_%d", i)
+		fixtures.AddHotel(store, name, loc, nil)
+	}
+
 	user1 := fixtures.AddUser(store, "Ayomide", "Lawal", true)
 	userToken, _ := api.CreateTokenClaim(user1)
 

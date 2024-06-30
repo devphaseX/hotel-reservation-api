@@ -31,7 +31,7 @@ func (h *BookingHandler) GetBookings(c *fiber.Ctx) error {
 
 	}
 
-	filter := bson.M{}
+	filter := db.Record{}
 
 	if !user.IsAdmin {
 		filter["userId"] = bson.M{"$eq": user.ID}
@@ -61,7 +61,7 @@ func (h *BookingHandler) GetBooking(c *fiber.Ctx) error {
 		return utils.ErrInvalidID()
 	}
 
-	filter := bson.M{"_id": bson.M{"$eq": oid}}
+	filter := db.Record{"_id": bson.M{"$eq": oid}}
 
 	if !user.IsAdmin {
 		filter["userId"] = bson.M{"$eq": user.ID}
@@ -69,7 +69,6 @@ func (h *BookingHandler) GetBooking(c *fiber.Ctx) error {
 
 	booking, err := h.store.Booking.GetBooking(c.Context(), filter)
 
-	fmt.Println("booking err", err)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return utils.NewError(http.StatusNotFound, "booking not found")
@@ -95,13 +94,13 @@ func (h *BookingHandler) CancelBooking(c *fiber.Ctx) error {
 		return utils.ErrInvalidID()
 	}
 
-	filter := bson.M{"_id": bson.M{"$eq": oid}}
+	filter := db.Record{"_id": bson.M{"$eq": oid}}
 
 	if !user.IsAdmin {
 		filter["userId"] = bson.M{"$eq": user.ID}
 	}
 
-	if err = h.store.Booking.UpdateBooking(c.Context(), filter, bson.M{"cancel": true}); err != nil {
+	if err = h.store.Booking.UpdateBooking(c.Context(), filter, db.Record{"cancel": true}); err != nil {
 		return utils.NewError(http.StatusNotFound, "booking not found")
 	}
 

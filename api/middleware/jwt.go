@@ -10,7 +10,7 @@ import (
 	"github.com/devphaseX/hotel-reservation-api/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func JWTAuth(userStore db.UserStore) fiber.Handler {
@@ -30,19 +30,19 @@ func JWTAuth(userStore db.UserStore) fiber.Handler {
 			time.Parse(time.RFC3339, claim["expires"].(string))
 
 		if err != nil || expires.Before(time.Now()) {
-			return errors.New("expired token")
+			return utils.ErrUnauthorized("expired token")
 		}
 
-		id, err := primitive.ObjectIDFromHex(claim["id"].(string))
-
-		if err != nil {
-			return err
-		}
+		id, ok := claim["id"].(string)
 
 		if ok {
 			user, err := userStore.GetUserById(c.Context(), id)
 
 			if err != nil {
+
+				if errors.Is(err, mongo.ErrNoDocuments) {
+					return utils.ErrUnauthorized("token not valid")
+				}
 				return err
 			}
 

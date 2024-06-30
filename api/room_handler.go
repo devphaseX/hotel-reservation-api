@@ -10,7 +10,6 @@ import (
 	"github.com/devphaseX/hotel-reservation-api/types"
 	"github.com/devphaseX/hotel-reservation-api/utils"
 	"github.com/gofiber/fiber/v2"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -53,7 +52,7 @@ func (h *RoomHandler) HandleGetRooms(c *fiber.Ctx) error {
 		})
 	}
 
-	rooms, err := h.store.Room.GetRooms(c.Context(), bson.M{})
+	rooms, err := h.store.Room.GetRooms(c.Context(), db.Record{})
 
 	if err != nil {
 		return err
@@ -97,7 +96,7 @@ func (h *RoomHandler) HandlerBookRoom(c *fiber.Ctx) error {
 		return utils.NewError(http.StatusConflict, "room already booked")
 	}
 
-	room, err := h.store.Room.GetRoom(c.Context(), bson.M{"_id": oid})
+	room, err := h.store.Room.GetRoom(c.Context(), db.Record{"_id": oid})
 
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -126,10 +125,10 @@ func (h *RoomHandler) HandlerBookRoom(c *fiber.Ctx) error {
 
 func (h *RoomHandler) RoomAvailable(ctx context.Context, roomId primitive.ObjectID, params BookRoomParams) (bool, error) {
 
-	bookedRoomFilter := bson.M{
-		"fromDate": bson.M{"$gte": params.FromDate},
-		"toDate":   bson.M{"$lte": params.ToDate},
-		"roomId":   bson.M{"$eq": roomId},
+	bookedRoomFilter := db.Record{
+		"fromDate": db.Record{"$gte": params.FromDate},
+		"toDate":   db.Record{"$lte": params.ToDate},
+		"roomId":   db.Record{"$eq": roomId},
 	}
 
 	bookedRooms, err := h.store.Booking.GetBookings(ctx, bookedRoomFilter)

@@ -12,3 +12,9 @@ type Store struct {
 	Room    RoomStore
 	Booking BookingStore
 }
+
+type Record map[string]any
+type KeyValueRecord []struct {
+	Key   string
+	Value any
+}
