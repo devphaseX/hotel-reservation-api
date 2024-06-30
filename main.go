@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 
 	"github.com/devphaseX/hotel-reservation-api/api"
+	"github.com/devphaseX/hotel-reservation-api/config"
+
 	"github.com/devphaseX/hotel-reservation-api/api/middleware"
 	"github.com/devphaseX/hotel-reservation-api/db"
 	"github.com/devphaseX/hotel-reservation-api/utils"
@@ -14,25 +17,22 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// Create a new fiber instance with custom config
-var config = fiber.Config{
+// Create a new fiber instance with custom fiberConfig
+var fiberConfig = fiber.Config{
 	// Override default error handler
 	ErrorHandler: utils.ErrorHandler,
 }
 
 func main() {
-	listenAddress := flag.String("listenAddress", ":5000", "The listen address of the api server")
 
-	var err error
-	client, err := mongo.Connect(context.TODO(), options.Client().
-		ApplyURI(db.URI))
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(config.EnvConfig.MongoDBUrl))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	flag.Parse()
 
-	app := fiber.New(config)
+	app := fiber.New(fiberConfig)
 	var (
 		//store initialization
 		userStore    = db.NewMongoUserStore(client)
@@ -96,5 +96,5 @@ func main() {
 	userBookingv1Api.Get("/:id", bookingHandler.GetBooking)
 	userBookingv1Api.Post("/:id/cancel", bookingHandler.CancelBooking)
 
-	app.Listen(*listenAddress)
+	app.Listen(fmt.Sprintf(":%s", config.EnvConfig.ServerPort))
 }

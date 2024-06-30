@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 
+	"github.com/devphaseX/hotel-reservation-api/config"
 	"github.com/devphaseX/hotel-reservation-api/types"
 	"github.com/devphaseX/hotel-reservation-api/utils"
 	"github.com/gofiber/fiber/v2"
@@ -15,8 +16,24 @@ import (
 const hotelCollName = "hotel"
 
 type GetHotelsQueryParam struct {
-	Room   bool `json:"room"`
-	Rating int
+	Room   *bool `json:"room"`
+	Rating *int
+}
+
+type ReceivedFilter map[string]any
+
+func (q *GetHotelsQueryParam) GetReceivedFilter() (receivedFilter ReceivedFilter, includeRoom bool) {
+	receivedFilter = map[string]any{}
+
+	if q.Rating != nil {
+		receivedFilter["rating"] = q.Rating
+	}
+
+	if q.Room != nil {
+		includeRoom = *q.Room
+	}
+
+	return
 }
 
 func NewGetHotelsQueryParams(c *fiber.Ctx) (*GetHotelsQueryParam, error) {
@@ -44,7 +61,7 @@ type MongoHotelStore struct {
 func NewMongoHotelStore(client *mongo.Client) *MongoHotelStore {
 	return &MongoHotelStore{
 		client: client,
-		coll:   client.Database(DBNAME).Collection(hotelCollName),
+		coll:   client.Database(config.EnvConfig.MongoDBName).Collection(hotelCollName),
 	}
 }
 
@@ -74,9 +91,11 @@ func (h *MongoHotelStore) GetMany(ctx context.Context, paginateQuery *utils.Pagi
 
 	opts.SetSkip(offset)
 	opts.SetLimit(limit)
-	_ = opts
 
-	res, err := h.coll.Find(ctx, bson.M{}, &opts)
+	receivedFilter, includeRoom := filter.GetReceivedFilter()
+
+	_ = includeRoom
+	res, err := h.coll.Find(ctx, receivedFilter, &opts)
 
 	if err != nil {
 		return nil, err

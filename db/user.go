@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/devphaseX/hotel-reservation-api/config"
 	"github.com/devphaseX/hotel-reservation-api/types"
 	"github.com/devphaseX/hotel-reservation-api/utils"
 	"go.mongodb.org/mongo-driver/bson"
@@ -35,7 +36,7 @@ type MongoUserStore struct {
 func NewMongoUserStore(client *mongo.Client) *MongoUserStore {
 	return &MongoUserStore{
 		client: client,
-		coll:   client.Database(DBNAME).Collection(userColName),
+		coll:   client.Database(config.EnvConfig.MongoDBName).Collection(userColName),
 	}
 }
 

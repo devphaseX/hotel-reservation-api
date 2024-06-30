@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/devphaseX/hotel-reservation-api/api"
+	"github.com/devphaseX/hotel-reservation-api/config"
 	"github.com/devphaseX/hotel-reservation-api/db"
 	"github.com/devphaseX/hotel-reservation-api/db/fixtures"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -14,13 +15,15 @@ import (
 
 func main() {
 	ctx := context.Background()
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(db.URI))
+	// config.EnvConfig.SetMongoDbName(config.EnvConfig.MongoDBTestName)
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(config.EnvConfig.MongoDBUrl))
 
+	fmt.Println(config.EnvConfig.MongoDBName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := client.Database(db.DBNAME).Drop(ctx); err != nil {
+	if err := client.Database(config.EnvConfig.MongoDBName).Drop(ctx); err != nil {
 		fmt.Println(err)
 	}
 

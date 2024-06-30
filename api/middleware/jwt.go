@@ -23,7 +23,7 @@ func JWTAuth(userStore db.UserStore) fiber.Handler {
 
 		claim, err := ParseJWT(token[0])
 		if err != nil {
-			return err
+			return utils.ErrUnauthorized("invalid api token")
 		}
 
 		expires, err :=

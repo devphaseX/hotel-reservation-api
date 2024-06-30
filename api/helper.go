@@ -29,18 +29,3 @@ func NewResourceResp(data any, results, page int) ResourceResp {
 		Page:    page,
 	}
 }
-
-// type Filter map[string]any
-
-// func NewFilter(q map[string]any, filterKeys []string) Filter {
-// 	if len(filterKeys) == 0 {
-// 		return Filter{}
-// 	}
-
-// 	cq := utils.CloneMap(q)
-// 	for _, key := range filterKeys {
-// 		delete(cq, key)
-// 	}
-
-// 	return Filter(cq)
-// }
